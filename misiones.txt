@@ -1,0 +1,10 @@
+FÍSICO|Fuerza|Pesas|3|Levantamiento de Pesas|Completar 4 series de 12 repeticiones enfocadas en hipertrofia.
+FÍSICO|Salud|Hidratación|1|Protocolo H2O|Beber 2 litros de agua pura durante el día.
+MENTE|Estudios|Matemáticas|4|Cálculo Avanzado|Resolver 5 problemas de integración por partes sin usar calculadora.
+MENTE|Idiomas|Inglés|2|Listening Persona|Escuchar un podcast de 20 minutos en inglés y anotar 5 palabras nuevas.
+SOCIAL|Carisma|Oratoria|3|Voz de Mando|Grabar un video de 1 minuto explicando un tema técnico sin muletillas.
+CORAJE|Voluntad|Disciplina|5|Ducha de Hielo|Tomar una ducha de agua fría al despertar para fortalecer la voluntad.
+CORAJE|Resiliencia|Estoicismo|4|Ayuno Digital|No usar redes sociales personales durante 6 horas productivas.
+CORAJE|Exploración|Novedad|3|Ruta Desconocida|Caminar o conducir por una ruta totalmente nueva para llegar a un destino común.
+TALENTO|Tecnología|Código|5|Refactorización Máxima|Optimizar una función de JavaScript antigua usando ES6+.
+ESPÍRITU|Zen|Meditación|2|Vaciado Mental|10 minutos de meditación enfocada únicamente en la respiración rítmica.

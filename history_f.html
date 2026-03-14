@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Workers - Historial</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@300;500;700&display=swap');
+
+        :root {
+            --p5-red: #d31212;
+            --p5-bright-red: #ff1a1a;
+            --p5-black: #0a0a0a;
+            --p5-dark-gray: #1a1a1a;
+            --p5-white: #eeeeee;
+            --p5-green: #00ff00;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            background-color: var(--p5-black);
+            background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), 
+                              repeating-linear-gradient(45deg, #151515 0, #151515 1px, transparent 0, transparent 50%);
+            background-size: 10px 10px;
+            color: var(--p5-white);
+            font-family: 'Oswald', sans-serif;
+            margin: 0; padding: 15px;
+            padding-bottom: 90px;
+            overflow-x: hidden;
+        }
+
+        /* --- HEADER --- */
+        .header {
+            background: var(--p5-black);
+            padding: 40px 20px;
+            margin: -15px -15px 30px -15px;
+            text-align: center;
+            border-bottom: 5px solid var(--p5-red);
+            position: relative;
+        }
+
+        .title-wrapper {
+            position: relative;
+            display: inline-block;
+            transform: rotate(-2deg);
+        }
+
+        h1 { 
+            font-family: 'Anton'; 
+            font-size: clamp(2.5rem, 8vw, 4rem); 
+            margin: 0; 
+            color: var(--p5-white); 
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            text-shadow: 4px 4px 0 var(--p5-red), -2px -2px 0 var(--p5-black);
+        }
+
+        .header-subtitle {
+            font-family: 'Anton';
+            background: var(--p5-green);
+            color: var(--p5-black);
+            padding: 2px 15px;
+            font-size: 1.2rem;
+            display: inline-block;
+            transform: skewX(-15deg);
+            margin-top: 5px;
+        }
+
+        /* --- MISIONES COMPLETADAS --- */
+        .mission-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .m-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px dashed #444;
+            border-left: 8px solid var(--p5-green);
+            display: flex;
+            align-items: center;
+            opacity: 0.8;
+            transition: 0.3s;
+            overflow: hidden;
+        }
+
+        .m-card:hover { opacity: 1; transform: scale(1.02); background: rgba(255,255,255,0.1); }
+
+        .m-icon {
+            width: 60px; height: 60px;
+            display: flex; align-items: center; justify-content: center;
+            background: rgba(0, 255, 0, 0.1);
+            font-size: 1.5rem; color: var(--p5-green);
+        }
+
+        .m-info { padding: 10px 15px; flex: 1; }
+        .m-info h3 { margin: 0; font-family: 'Anton'; font-size: 1.1rem; text-transform: uppercase; line-height: 1.1; color: #ddd; }
+        .m-info p { margin: 5px 0 0 0; font-size: 0.75rem; color: #666; font-weight: bold; }
+        
+        .m-date { font-size: 0.7rem; color: var(--p5-green); font-family: 'Anton'; padding-right: 15px; text-align: right; }
+
+        /* --- TAB BAR --- */
+        .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: black; display: flex; justify-content: space-around; padding: 12px 0; border-top: 3px solid var(--p5-red); z-index: 2000; }
+        .tab-item { color: #555; text-decoration: none; text-align: center; font-family: 'Anton'; font-size: 0.65rem; }
+        .tab-item i { display: block; font-size: 1.3rem; margin-bottom: 4px; }
+        .tab-item.active { color: var(--p5-red); transform: translateY(-3px); }
+
+        #loadingScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 5000; display: none; justify-content: center; align-items: center; }
+        .load-text { font-family: 'Anton'; font-size: 2rem; color: white; text-transform: uppercase; animation: pulse 1s infinite; }
+
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="loadingScreen"><div class="load-text">ACCEDIENDO AL ARCHIVO...</div></div>
+
+    <div class="header">
+        <div class="title-wrapper">
+            <h1>THE WORKERS</h1>
+        </div><br>
+        <div class="header-subtitle"><i class="fa-solid fa-check-double"></i> MISIONES FINALIZADAS</div>
+    </div>
+
+    <main class="mission-container" id="historialList"></main>
+
+    <nav class="tab-bar">
+        <a href="index.html" class="tab-item"><i class="fa-solid fa-house"></i>INICIO</a>
+        <a href="task.html" class="tab-item"><i class="fa-solid fa-skull-crossbones"></i>TASKS</a>
+        <a href="history_p.html" class="tab-item"><i class="fa-solid fa-clock-rotate-left"></i>PENDIENTES</a>
+        <a href="history_f.html" class="tab-item active"><i class="fa-solid fa-check-double"></i>HISTORIAL</a>
+    </nav>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjTFuASVM9JpXtM04dKwgaO2bC_thSxXs",
+            authDomain: "the-workes.firebaseapp.com",
+            projectId: "the-workes",
+            storageBucket: "the-workes.firebasestorage.app",
+            messagingSenderId: "836433638146",
+            appId: "1:836433638146:web:2c1bb69904a82e2f49c81b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        function renderHistorial(lista) {
+            const container = document.getElementById('historialList');
+            container.innerHTML = "";
+
+            if(lista.length === 0) {
+                container.innerHTML = "<p style='text-align:center; opacity:0.3; margin-top:50px; grid-column: 1/-1;'>EL ARCHIVO ESTÁ VACÍO</p>";
+                return;
+            }
+
+            lista.forEach(m => {
+                const fecha = m.fechaFin ? new Date(m.fechaFin.seconds * 1000).toLocaleDateString() : '--/--';
+                const div = document.createElement('div');
+                div.className = 'm-card';
+                div.innerHTML = `
+                    <div class="m-icon"><i class="fa-solid fa-check"></i></div>
+                    <div class="m-info">
+                        <h3>${m.titulo}</h3>
+                        <p>${m.categoria} > ${m.minicategoria} (${'★'.repeat(m.estrellas)})</p>
+                    </div>
+                    <div class="m-date">${fecha}</div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if(user) {
+                document.getElementById('loadingScreen').style.display = 'flex';
+                const q = query(collection(db, "completadas"), where("userId", "==", user.uid));
+                onSnapshot(q, (snap) => {
+                    const completadas = snap.docs.map(doc => doc.data())
+                        .sort((a, b) => (b.fechaFin?.seconds || 0) - (a.fechaFin?.seconds || 0));
+                    renderHistorial(completadas);
+                    document.getElementById('loadingScreen').style.display = 'none';
+                });
+            } else { window.location.href = "login.html"; }
+        });
+    </script>
+</body>
+</html>

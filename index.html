@@ -1,0 +1,864 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Workers - Sistema de Estado</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@300;500;700&display=swap');
+
+        :root {
+            --p5-red: #d31212;
+            --p5-bright-red: #ff1a1a;
+            --p5-black: #0a0a0a;
+            --p5-dark-gray: #1a1a1a;
+            --p5-white: #eeeeee;
+        }
+
+        body {
+            background-color: var(--p5-black);
+            background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), 
+                              repeating-linear-gradient(45deg, #151515 0, #151515 1px, transparent 0, transparent 50%);
+            background-size: 10px 10px;
+            color: var(--p5-white);
+            font-family: 'Oswald', sans-serif;
+            margin: 0; padding: 15px;
+            padding-bottom: 90px;
+            overflow-x: hidden;
+        }
+
+        /* --- BARRA INFERIOR --- */
+        .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: black; display: flex; justify-content: space-around; padding: 12px 0; border-top: 3px solid var(--p5-red); z-index: 2000; }
+        .tab-item { color: #555; text-decoration: none; text-align: center; font-family: 'Anton'; font-size: 0.65rem; }
+        .tab-item i { display: block; font-size: 1.3rem; margin-bottom: 4px; }
+        .tab-item.active { color: var(--p5-red); transform: translateY(-3px); }
+
+        .header {
+            background: var(--p5-black);
+            padding: 40px 20px;
+            margin: -15px -15px 30px -15px;
+            text-align: center;
+            border-bottom: 5px solid var(--p5-red);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(211, 18, 18, 0.05) 0px, transparent 2px);
+            pointer-events: none;
+        }
+
+        .title-wrapper {
+            position: relative;
+            display: inline-block;
+            transform: rotate(-2deg);
+        }
+
+        h1 { 
+            font-family: 'Anton'; 
+            font-size: clamp(3rem, 10vw, 5rem); 
+            margin: 0; 
+            color: var(--p5-white); 
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            text-shadow: 4px 4px 0 var(--p5-red), -2px -2px 0 var(--p5-black);
+            line-height: 0.9;
+        }
+
+        .header-subtitle {
+            font-family: 'Anton';
+            background: var(--p5-red);
+            color: var(--p5-black);
+            padding: 2px 15px;
+            font-size: 1.2rem;
+            display: inline-block;
+            transform: skewX(-15deg);
+            margin-top: 5px;
+        }
+
+        .logout-btn {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: var(--p5-red);
+            color: var(--p5-white);
+            border: none;
+            font-family: 'Anton';
+            padding: 8px 15px;
+            cursor: pointer;
+            clip-path: polygon(10% 0, 100% 0, 90% 100%, 0 100%);
+            font-size: 0.8rem;
+            z-index: 10;
+        }
+
+        .mega-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 30px;
+            padding: 0 5px;
+        }
+
+        .mega-btn {
+            background: var(--p5-dark-gray);
+            color: var(--p5-white);
+            border: 2px solid #333;
+            padding: 12px 5px;
+            font-family: 'Anton';
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            clip-path: polygon(0 0, 100% 15%, 100% 100%, 0 85%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .mega-btn i { font-size: 1.4rem; color: var(--p5-red); transition: 0.3s; }
+
+        .mega-btn:hover {
+            background: var(--p5-white);
+            color: var(--p5-black);
+            border-color: var(--p5-white);
+            transform: scale(1.05) rotate(2deg);
+            z-index: 5;
+        }
+
+        .mega-btn:hover i { color: var(--p5-black); }
+
+        .mega-btn.active {
+            background: var(--p5-red);
+            color: var(--p5-white);
+            border-color: var(--p5-white);
+            clip-path: polygon(0 15%, 100% 0, 100% 85%, 0 100%);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(211, 18, 18, 0.6);
+        }
+
+        .mega-btn.active i { color: var(--p5-white); }
+
+        .main-container {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            max-width: 1300px;
+            margin: 0 auto;
+        }
+
+        @media (min-width: 900px) {
+            .main-container { grid-template-columns: 420px 1fr; }
+            .mega-selector { grid-template-columns: repeat(6, 1fr); }
+        }
+
+        .action-card {
+            background: var(--p5-dark-gray);
+            padding: 30px;
+            border: 2px solid #333;
+            border-top: 8px solid var(--p5-red);
+            position: relative;
+            clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%); /* Quitamos el clip-path agresivo que cortaba el contenido */
+            box-shadow: 5px 5px 0 var(--p5-black);
+        }
+
+        /* Quitamos el pseudo-elemento ::before que decía SYSTEM_ACCESS */
+
+        label {
+            color: var(--p5-red);
+            font-weight: 700;
+            display: block;
+            margin-top: 20px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid rgba(211, 18, 18, 0.3);
+            padding-bottom: 3px;
+        }
+
+        .display-valor {
+            color:white; 
+            font-size: 2rem; 
+            font-family:'Anton'; 
+            margin-bottom:15px;
+            padding-left: 10px;
+            border-left: 5px solid var(--p5-red);
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            background: var(--p5-black);
+            color: var(--p5-white);
+            border: 2px solid #333;
+            margin-top: 5px;
+            font-family: 'Oswald';
+            outline: none;
+            cursor: pointer;
+        }
+        
+        select:focus {
+            border-color: var(--p5-red);
+            box-shadow: 0 0 10px rgba(211, 18, 18, 0.3);
+        }
+
+        .btn-group {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .exp-btn {
+            padding: 12px 5px;
+            background: #111;
+            border: 2px solid #333;
+            color: white;
+            font-family: 'Anton';
+            cursor: pointer;
+            transition: 0.2s;
+            font-size: 0.8rem;
+            transform: skewX(-10deg);
+        }
+
+        .exp-btn:hover { 
+            background: var(--p5-red); 
+            border-color: var(--p5-white);
+            transform: skewX(-10deg) translateY(-3px);
+        }
+
+        .btn-confirmar {
+            width: 100%;
+            padding: 20px;
+            margin-top: 30px;
+            background: var(--p5-white);
+            color: var(--p5-black);
+            font-family: 'Anton';
+            font-size: 1.5rem;
+            border: none;
+            cursor: pointer;
+            clip-path: polygon(0 0, 100% 20%, 100% 100%, 0 80%);
+            transition: 0.3s;
+        }
+        
+        .btn-confirmar:hover {
+            background: var(--p5-red);
+            color: var(--p5-white);
+            transform: scale(1.02);
+        }
+
+        .chart-box {
+            background: rgba(0, 0, 0, 0.8);
+            padding: 20px;
+            border: 2px solid #333;
+            height: 350px;
+            margin-bottom: 25px;
+            position: relative;
+        }
+
+        .chart-box::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(45deg, transparent 48%, rgba(211, 18, 18, 0.1) 50%, transparent 52%);
+            background-size: 20px 20px;
+            pointer-events: none;
+        }
+
+        .details-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .stat-card {
+            background: var(--p5-dark-gray);
+            padding: 20px;
+            border: 1px solid #333;
+            border-left: 8px solid var(--p5-red);
+            position: relative;
+            transition: 0.3s;
+            overflow: hidden;
+        }
+        
+        .stat-card:hover {
+            transform: translateX(10px) rotate(1deg);
+            background: #222;
+        }
+
+        .stat-card::after {
+            content: var(--card-icon, "\f005"); /* FontAwesome dinámico */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            position: absolute;
+            right: -10px; bottom: -10px;
+            font-size: 5rem;
+            color: rgba(255, 255, 255, 0.03);
+            pointer-events: none;
+        }
+
+        .stat-title {
+            font-size: 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-family: 'Anton';
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .rango-etiqueta {
+            background: var(--p5-white);
+            color: var(--p5-black);
+            padding: 2px 12px;
+            font-family: 'Anton';
+            font-size: 0.9rem;
+            transform: rotate(5deg);
+        }
+
+        .barra-fondo {
+            background: var(--p5-black);
+            height: 15px;
+            margin: 15px 0 8px 0;
+            overflow: hidden;
+            clip-path: polygon(0 0, 98% 0, 100% 100%, 2% 100%);
+        }
+
+        .barra-progreso {
+            background: linear-gradient(90deg, var(--p5-red), var(--p5-bright-red));
+            height: 100%;
+            box-shadow: 0 0 15px var(--p5-red);
+            transition: width 0.8s cubic-bezier(0.19, 1, 0.22, 1);
+            position: relative;
+        }
+
+        .barra-progreso::after {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+            animation: shine-bar 2s infinite;
+        }
+
+        @keyframes shine-bar {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .texto-info {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: var(--p5-white);
+            font-family: 'Anton';
+            letter-spacing: 1px;
+        }
+
+        .botones-archivo {
+            margin-top: 40px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-archivo {
+            background: #222;
+            border: 1px solid #444;
+            color: #888;
+            padding: 10px;
+            font-size: 0.7rem;
+            cursor: pointer;
+            flex: 1;
+            font-family: 'Anton';
+            text-transform: uppercase;
+        }
+
+        .btn-archivo:hover {
+            color: var(--p5-white);
+            border-color: var(--p5-red);
+        }
+
+        /* --- MEJORA 1: EFECTO RANK UP OVERLAY --- */
+        .rank-up-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            opacity: 0;
+        }
+
+        .rank-up-bg {
+            position: absolute;
+            width: 200%; height: 250px;
+            background: var(--p5-black);
+            transform: rotate(-15deg) translateY(-1500px);
+            box-shadow: 0 0 0 15px var(--p5-red);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .rank-up-text {
+            font-family: 'Anton';
+            font-size: 8rem;
+            color: var(--p5-white);
+            text-shadow: 6px 6px 0 var(--p5-red);
+            transform: scale(0) skewX(-10deg);
+            margin: 0;
+        }
+        
+        .rank-up-subtext {
+            font-family: 'Oswald';
+            color: var(--p5-bright-red);
+            font-size: 2rem;
+            position: absolute;
+            bottom: 20px;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .animar-rankup { opacity: 1; }
+        .animar-rankup .rank-up-bg { animation: slash-in 2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+        .animar-rankup .rank-up-text { animation: text-pop 2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards; }
+
+        @keyframes slash-in {
+            0% { transform: rotate(-15deg) translateY(-1500px); }
+            15% { transform: rotate(-15deg) translateY(0); }
+            85% { transform: rotate(-15deg) translateY(0); }
+            100% { transform: rotate(-15deg) translateY(1500px); }
+        }
+
+        @keyframes text-pop {
+            0% { transform: scale(0) skewX(-10deg); opacity: 0; }
+            15% { transform: scale(1.2) skewX(-10deg); opacity: 1; }
+            20% { transform: scale(1) skewX(-10deg); opacity: 1; }
+            85% { transform: scale(1) skewX(-10deg); opacity: 1; }
+            100% { transform: scale(0) skewX(-10deg); opacity: 0; }
+        }
+        /* ---------------------------------------- */
+
+        /* --- ESTILOS PARA POPUP DE IMPACTO (CRITICAL) --- */
+        .critical-popup {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            font-family: 'Anton';
+            font-size: 4rem;
+            color: var(--p5-white);
+            text-shadow: 6px 6px 0 var(--p5-red), -3px -3px 0 var(--p5-black);
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            animation: p5-impact 0.6s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .critical-bg {
+            position: absolute;
+            width: 180px; height: 180px;
+            background: var(--p5-black);
+            clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+            z-index: -1;
+            transform: rotate(-15deg);
+        }
+
+        @keyframes p5-impact {
+            0% { transform: scale(0) rotate(-20deg) skewX(-15deg); opacity: 0; }
+            20% { transform: scale(1.4) rotate(10deg) skewX(-15deg); opacity: 1; }
+            100% { transform: scale(1) translate(20px, -100px) rotate(-5deg) skewX(-15deg); opacity: 0; }
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <div class="title-wrapper">
+            <h1>THE WORKERS</h1>
+        </div><br>
+        <div class="header-subtitle" id="userNameDisplay">CONECTANDO...</div>
+        <button id="btn-logout" class="logout-btn">LOGOUT</button>
+    </div>
+
+    <div class="mega-selector" id="megaSelector"></div>
+
+    <div class="main-container">
+        <div class="left-panel">
+            <div class="chart-box"><canvas id="radarChart"></canvas></div>
+            
+            <div class="action-card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <label>Atributo Actual:</label>
+                    <i id="skillIconPreview" class="fa-solid fa-circle-question" style="font-size: 2rem; color: var(--p5-red); margin-top:15px;"></i>
+                </div>
+                <div id="megaDisplay" class="display-valor">-</div>
+
+                <label>1. Categoría de entrenamiento:</label>
+                <select id="catSelect" onchange="updateSubOptions(); updateUI(); updateSkillIcon();"></select>
+                
+                <label>2. Habilidad a mejorar:</label>
+                <select id="subSelect" onchange="updateSkillIcon()"></select>
+
+                <label>3. Intensidad de la actividad:</label>
+                <div class="btn-group">
+                    <button onclick="addExp(1, event)" class="exp-btn">LEVE</button>
+                    <button onclick="addExp(2, event)" class="exp-btn">NORMAL</button>
+                    <button onclick="addExp(3, event)" class="exp-btn">INTENSO</button>
+                </div>
+                
+                <button class="btn-confirmar" onclick="confirmarMejora(event)">CONFIRMAR MEJORA</button>
+
+                <div class="botones-archivo">
+                    <button onclick="exportarDatos()" class="btn-archivo">GUARDAR DATOS</button>
+                    <button onclick="document.getElementById('fileInput').click()" class="btn-archivo">CARGAR DATOS</button>
+                    <input type="file" id="fileInput" style="display:none" onchange="importarDatos(event)">
+                </div>
+            </div>
+        </div>
+
+        <div class="details-grid" id="detailsGrid"></div>
+    </div>
+
+    <div id="rankUpOverlay" class="rank-up-overlay">
+        <div class="rank-up-bg">
+            <h2 class="rank-up-text">RANK UP!</h2>
+            <div id="rankUpHabilidad" class="rank-up-subtext"></div>
+        </div>
+    </div>
+
+    <nav class="tab-bar">
+        <a href="index.html" class="tab-item active"><i class="fa-solid fa-house"></i>INICIO</a>
+        <a href="task.html" class="tab-item"><i class="fa-solid fa-skull-crossbones"></i>TASKS</a>
+        <a href="history_p.html" class="tab-item"><i class="fa-solid fa-clock-rotate-left"></i>PENDIENTES</a>
+        <a href="history_f.html" class="tab-item"><i class="fa-solid fa-check-double"></i>HISTORIAL</a>
+    </nav>
+
+    <script>
+        // CONFIGURACIÓN GLOBAL
+        const MODELO_DATOS = {
+            "FÍSICO": { icon: "fa-dumbbell", subs: { "Fuerza": ["Pesas", "Flexiones", "Dominadas", "Potencia", "Agarre"], "Salud": ["Sueño", "Hidratación", "Nutrición", "Postura", "Higiene"], "Combate": ["Reflejos", "Técnica", "Defensa", "Resistencia", "Estrategia"] } },
+            "MENTE": { icon: "fa-brain", subs: { "Estudios": ["Matemáticas", "Ciencias", "Historia", "Literatura", "Geografía"], "Idiomas": ["Inglés", "Gramática", "Vocabulario", "Escucha", "Lectura"], "Análisis": ["Lógica", "Crítica", "Problemas", "Ajedrez", "Memoria"] } },
+            "SOCIAL": { icon: "fa-comments", subs: { "Carisma": ["Oratoria", "Presencia", "Cuerpo", "Humor", "Estilo"], "Empatía": ["Escucha", "Apoyo", "Conflictos", "Paciencia", "Perspectiva"], "Redes": ["Amigos", "Networking", "Familia", "Eventos", "Comunidad"] } },
+            "CORAJE": { icon: "fa-fire", subs: { "Voluntad": ["Disciplina", "Iniciativa", "Constancia", "Puntualidad", "Decisión"], "Resiliencia": ["Fracaso", "Estrés", "Miedo", "Adaptación", "Estoicismo"], "Exploración": ["Novedad", "Viajes", "Extraños", "Proyectos", "Curiosidad"] } },
+            "TALENTO": { icon: "fa-palette", subs: { "Arte": ["Dibujo", "Música", "Diseño", "Foto", "Escritura"], "Tecnología": ["Código", "Hardware", "Software", "Teclado", "Video"], "Oficios": ["Cocina", "Reparación", "Orden", "Finanzas", "Auxilios"] } },
+            "ESPÍRITU": { icon: "fa-om", subs: { "Zen": ["Meditación", "Respiración", "Mindfulness", "Paz", "Gratitud"], "Valores": ["Honestidad", "Deber", "Lealtad", "Justicia", "Humildad"], "Filosofía": ["Lectura", "Reflexión", "Propósito", "Ética", "Ser"] } }
+        };
+
+        // Lógica de Niveles
+        function calcExpNecesaria(nivel) { return nivel <= 1 ? 0 : Math.floor(5 * Math.pow(nivel, 1.5) + (nivel * 10) - 15); }
+        function obtenerNivel(exp) { let n = 1; while (exp >= calcExpNecesaria(n + 1) && n < 10) n++; return n; }
+
+        // Estado Global (Anclado a window para Firebase)
+        window.estadisticas = window.estadisticas || {}; 
+        window.datosCargadosDesdeNube = false;
+        let megaActual = "FÍSICO";
+        let grafico;
+
+        function initEstadisticas() {
+            for (let m in MODELO_DATOS) {
+                if (!window.estadisticas[m]) window.estadisticas[m] = {};
+                for (let c in MODELO_DATOS[m].subs) {
+                    if (!window.estadisticas[m][c]) window.estadisticas[m][c] = {};
+                    MODELO_DATOS[m].subs[c].forEach(s => { 
+                        if (window.estadisticas[m][c][s] === undefined) window.estadisticas[m][c][s] = 0; 
+                    });
+                }
+            }
+        }
+
+        function updateUI() {
+            const selector = document.getElementById('megaSelector');
+            const visorMega = document.getElementById('megaDisplay');
+            if(!selector) return;
+
+            initEstadisticas();
+            
+            selector.innerHTML = '';
+            visorMega.innerText = megaActual;
+
+            Object.keys(MODELO_DATOS).forEach(m => {
+                const btn = document.createElement('button');
+                btn.className = `mega-btn ${m === megaActual ? 'active' : ''}`;
+                btn.innerHTML = `<i class="fa-solid ${MODELO_DATOS[m].icon}"></i><span>${m}</span>`;
+                btn.onclick = () => { megaActual = m; updateUI(); };
+                selector.appendChild(btn);
+            });
+
+            const catSelect = document.getElementById('catSelect');
+            if (catSelect.getAttribute('data-mega') !== megaActual) {
+                catSelect.innerHTML = '';
+                Object.keys(MODELO_DATOS[megaActual].subs).forEach(c => {
+                    let opt = document.createElement('option');
+                    opt.value = c; opt.innerText = c;
+                    catSelect.appendChild(opt);
+                });
+                catSelect.setAttribute('data-mega', megaActual);
+                updateSubOptions();
+            }
+
+            const grid = document.getElementById('detailsGrid');
+            grid.innerHTML = '';
+            const catSeleccionada = catSelect.value;
+            const rEtiquetas = [], rValores = [];
+
+            Object.keys(MODELO_DATOS[megaActual].subs).forEach(cat => {
+                let nivelTotalCat = 0, cuenta = 0;
+                MODELO_DATOS[megaActual].subs[cat].forEach(hab => {
+                    const exp = window.estadisticas[megaActual][cat][hab] || 0;
+                    const nivel = obtenerNivel(exp), sig = calcExpNecesaria(nivel + 1), base = calcExpNecesaria(nivel);
+                    const porcentaje = nivel >= 10 ? 100 : ((exp - base) / (sig - base)) * 100;
+                    nivelTotalCat += nivel; cuenta++;
+                    
+                    if(cat === catSeleccionada) {
+                        const card = document.createElement('div');
+                        card.className = 'stat-card';
+                        // Inyectar icono de fondo via variable CSS
+                        const iconUnicode = getIconUnicode(MODELO_DATOS[megaActual].icon);
+                        card.style.setProperty('--card-icon', `'${iconUnicode}'`);
+                        
+                        card.innerHTML = `
+                        <div class="stat-card">
+                            <div class="stat-title">
+                                <span>${hab}</span>
+                                <span class="rango-etiqueta">RANGO ${nivel}</span>
+                            </div>
+                            <div class="barra-fondo"><div class="barra-progreso" style="width:${porcentaje}%"></div></div>
+                            <div class="texto-info">
+                                <span>EXP: ${exp}</span>
+                                <span>${nivel >= 10 ? 'NIVEL MÁXIMO' : 'Faltan ' + (sig - exp) + ' EXP'}</span>
+                            </div>
+                        </div>`;
+                        grid.appendChild(card.firstElementChild);
+                    }
+                });
+                rEtiquetas.push(cat); rValores.push(nivelTotalCat / cuenta);
+            });
+
+            const ctx = document.getElementById('radarChart');
+            if(grafico) grafico.destroy();
+            grafico = new Chart(ctx, { 
+                type: 'radar', 
+                data: { labels: rEtiquetas, datasets: [{ data: rValores, backgroundColor: 'rgba(211, 18, 18, 0.4)', borderColor: '#d31212', borderWidth: 2, pointBackgroundColor: '#fff' }] }, 
+                options: { 
+                    responsive: true, maintainAspectRatio: false, 
+                    scales: { r: { min: 0, max: 10, ticks: { display: false }, grid: { color: '#444' }, pointLabels: { color: '#eee', font: { family: 'Anton', size: 14 } }, angleLines: { color: '#444' } } }, 
+                    plugins: { legend: { display: false } } 
+                } 
+            });
+        }
+
+        function getIconUnicode(iconClass) {
+            const mapping = {
+                // Megas
+                "fa-dumbbell": "\\f44b", "fa-brain": "\\f5dc", "fa-comments": "\\f086", "fa-fire": "\\f06d", "fa-palette": "\\f53f", "fa-om": "\\f679",
+                // Físico
+                "fa-hand-fist": "\\f6de", "fa-weight-hanging": "\\f5cd", "fa-person-pushup": "\\f8d1", "fa-child-reaching": "\\f4e4", "fa-bolt": "\\f0e7", "fa-hand-rock": "\\f255",
+                "fa-heart-pulse": "\\f21e", "fa-bed": "\\f236", "fa-faucet-drip": "\\f000", "fa-apple-whole": "\\f5d1", "fa-accessibility": "\\f081", "fa-soap": "\\f06d",
+                "fa-user-ninja": "\\f1a0", "fa-eye": "\\f06e", "fa-wand-magic-sparkles": "\\f72b", "fa-shield-halved": "\\f3ed", "fa-person-running": "\\f70c", "fa-chess": "\\f439",
+                // Mente
+                "fa-book": "\\f02d", "fa-calculator": "\\f1ec", "fa-flask": "\\f0c3", "fa-landmark": "\\f66f", "fa-pen-nib": "\\f5ad", "fa-earth-americas": "\\f57d",
+                "fa-language": "\\f1ab", "fa-font": "\\f031", "fa-spell-check": "\\f891", "fa-list-ol": "\\f0cb", "fa-ear-listen": "\\f2a2", "fa-book-open": "\\f518",
+                "fa-magnifying-glass-chart": "\\f615", "fa-puzzle-piece": "\\f12e", "fa-screwdriver-wrench": "\\f7d9", "fa-chess-knight": "\\f441", "fa-microchip": "\\f2db",
+                // Social
+                "fa-star": "\\f005", "fa-microphone": "\\f130", "fa-user-tie": "\\f4fe", "fa-shirt": "\\f553", "fa-face-laugh-beam": "\\f59a", "fa-glasses": "\\f530",
+                "fa-hand-holding-heart": "\\f4be", "fa-ear-hearing": "\\f594", "fa-hands-holding-circle": "\\f4c7", "fa-handshake": "\\f2b5", "fa-hourglass-half": "\\f252", "fa-compass": "\\f14e",
+                "fa-users": "\\f0c0", "fa-user-group": "\\f500", "fa-briefcase": "\\f0b1", "fa-house-user": "\\f1ad", "fa-calendar-days": "\\f073", "fa-city": "\\f64f",
+                // Coraje
+                "fa-mountain": "\\f6fc", "fa-gavel": "\\f0e3", "fa-lightbulb": "\\f0eb", "fa-clock": "\\f017", "fa-stopwatch": "\\f2f2", "fa-check-double": "\\f560",
+                "fa-shield-heart": "\\f4c7", "fa-arrow-rotate-left": "\\f0e2", "fa-wind": "\\f72e", "fa-ghost": "\\f6e2", "fa-shuffle": "\\f074", "fa-mountain-sun": "\\f6fc",
+                "fa-wand-sparkles": "\\f72b", "fa-plane": "\\f072", "fa-hand-peace": "\\f25b", "fa-diagram-project": "\\f542", "fa-question": "\\f128",
+                // Talento
+                "fa-paintbrush": "\\f1fc", "fa-pen-fancy": "\\f5ac", "fa-music": "\\f001", "fa-pen-ruler": "\\f5ae", "fa-camera": "\\f030", "fa-feather": "\\f52d",
+                "fa-laptop-code": "\\f5fc", "fa-code": "\\f121", "fa-plug": "\\f1e6", "fa-window-maximize": "\\f2d0", "fa-keyboard": "\\f11c", "fa-film": "\\f008",
+                "fa-tools": "\\f7d9", "fa-utensils": "\\f2e7", "fa-wrench": "\\f0ad", "fa-broom": "\\f51a", "fa-coins": "\\f51e", "fa-kit-medical": "\\f479",
+                // Espíritu
+                "fa-yin-yang": "\\f6ad", "fa-spa": "\\f5bb", "fa-bullseye": "\\f140", "fa-dove": "\\f4ba", "fa-hands-praying": "\\f684",
+                "fa-balance-scale": "\\f24e", "fa-scale-balanced": "\\f24e", "fa-medal": "\\f5a2", "fa-shield": "\\f3ed", "fa-scale-unbalanced-flip": "\\f24e", "fa-leaf": "\\f06c",
+                "fa-scroll": "\\f70e", "fa-book-open-reader": "\\f5da", "fa-cloud": "\\f0c2", "fa-location-crosshairs": "\\f601", "fa-universal-access": "\\f29a"
+            };
+            return mapping[iconClass] || "\\f005";
+        }
+
+        function updateSubOptions() {
+            const cat = document.getElementById('catSelect').value;
+            const subSelect = document.getElementById('subSelect');
+            if(!subSelect) return;
+            subSelect.innerHTML = '';
+            if(MODELO_DATOS[megaActual] && MODELO_DATOS[megaActual].subs[cat]) {
+                MODELO_DATOS[megaActual].subs[cat].forEach(s => { 
+                    let opt = document.createElement('option'); opt.value = s; opt.innerText = s; subSelect.appendChild(opt); 
+                });
+            }
+        }
+
+        /* --- FUNCIONES NUEVAS: EFECTOS VISUALES Y SONIDO --- */
+        const sfxImpact = new Audio('https://www.myinstants.com/media/sounds/persona-5-critical-hit.mp3');
+        const sfxRankUp = new Audio('https://www.soundjay.com/buttons/sounds/button-37.mp3');
+
+        function dispararRankUp(habilidad, nivel) {
+            const overlay = document.getElementById('rankUpOverlay');
+            const subtext = document.getElementById('rankUpHabilidad');
+            subtext.innerText = `${habilidad} HA ALCANZADO EL RANGO ${nivel}`;
+            
+            sfxRankUp.play();
+            overlay.classList.remove('animar-rankup');
+            void overlay.offsetWidth; 
+            overlay.classList.add('animar-rankup');
+            
+            setTimeout(() => {
+                overlay.classList.remove('animar-rankup');
+            }, 2000);
+        }
+
+        function crearPopupImpacto(x, y, cantidad) {
+            sfxImpact.currentTime = 0;
+            sfxImpact.play();
+            
+            const popup = document.createElement('div');
+            popup.className = 'critical-popup';
+            popup.style.left = (x - 90) + 'px'; // Centrado sobre el click
+            popup.style.top = (y - 90) + 'px';
+            
+            popup.innerHTML = `
+                <div class="critical-bg"></div>
+                +${cantidad}
+            `;
+            
+            document.body.appendChild(popup);
+            setTimeout(() => popup.remove(), 600);
+        }
+
+        function addExp(pts, event) {
+            if(!window.datosCargadosDesdeNube) {
+                alert("Conectando con el Metaverso...");
+                return;
+            }
+            const cat = document.getElementById('catSelect').value;
+            const hab = document.getElementById('subSelect').value;
+            const expActual = window.estadisticas[megaActual][cat][hab];
+            const nivelActual = obtenerNivel(expActual);
+            
+            window.estadisticas[megaActual][cat][hab] += pts;
+            const nuevoNivel = obtenerNivel(window.estadisticas[megaActual][cat][hab]);
+            
+            if(nuevoNivel > nivelActual) dispararRankUp(hab, nuevoNivel);
+            
+            // Disparar popup de impacto estilo Critical
+            if(event) crearPopupImpacto(event.clientX, event.clientY, pts);
+            
+            updateUI();
+            if (typeof window.syncCloud === 'function') window.syncCloud(window.estadisticas);
+        }
+
+        function confirmarMejora(event) { addExp(1, event); }
+
+        function exportarDatos() {
+            const blob = new Blob([JSON.stringify(window.estadisticas)], {type: 'application/json'});
+            const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'the_workers_backup.json'; a.click();
+        }
+
+        function importarDatos(e) {
+            const reader = new FileReader();
+            reader.onload = (ev) => { 
+                window.estadisticas = JSON.parse(ev.target.result); 
+                updateUI();
+                if (typeof window.syncCloud === 'function') window.syncCloud(window.estadisticas);
+            };
+            reader.readAsText(e.target.files[0]);
+        }
+
+        function updateSkillIcon() {
+            const cat = document.getElementById('catSelect').value;
+            const hab = document.getElementById('subSelect').value;
+            const preview = document.getElementById('skillIconPreview');
+            if (MODELO_DATOS[megaActual] && MODELO_DATOS[megaActual].subs[cat] && MODELO_DATOS[megaActual].subs[cat].skills[hab]) {
+                const iconClass = MODELO_DATOS[megaActual].subs[cat].skills[hab];
+                preview.className = `fa-solid ${iconClass}`;
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            initEstadisticas();
+            updateUI();
+            updateSkillIcon();
+        });
+    </script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBjTFuASVM9JpXtM04dKwgaO2bC_thSxXs",
+            authDomain: "the-workes.firebaseapp.com",
+            projectId: "the-workes",
+            storageBucket: "the-workes.firebasestorage.app",
+            messagingSenderId: "836433638146",
+            appId: "1:836433638146:web:2c1bb69904a82e2f49c81b"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // Función global para guardar disponible en todo el código
+        window.syncCloud = async (datos) => {
+            if (auth.currentUser) {
+                try {
+                    await setDoc(doc(db, "usuarios", auth.currentUser.uid), datos);
+                    console.log("Datos sincronizados.");
+                } catch (e) { console.error("Error al guardar:", e); }
+            }
+        };
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = "login.html";
+            } else {
+                // Mostrar solo el nombre del usuario en la cabecera
+                const userName = user.displayName || user.email.split('@')[0].toUpperCase();
+                document.getElementById('userNameDisplay').innerText = userName;
+
+                const docRef = doc(db, "usuarios", user.uid);
+                try {
+                    const docSnap = await getDoc(docRef);
+                    if (docSnap.exists()) {
+                        window.estadisticas = docSnap.data();
+                    } else {
+                        window.estadisticas = {}; // Nuevo usuario
+                    }
+                    
+                    window.datosCargadosDesdeNube = true;
+                    window.initEstadisticas(); // Limpia campos faltantes
+                    window.updateUI(); // Refresca interfaz
+
+                } catch (error) {
+                    console.error("Error inicial:", error);
+                    window.datosCargadosDesdeNube = true; // Desbloqueo de emergencia
+                }
+
+                // Listener para cambios externos
+                onSnapshot(docRef, (update) => {
+                    if (update.exists()) {
+                        window.estadisticas = update.data();
+                        window.updateUI();
+                    }
+                });
+            }
+        });
+
+        document.getElementById('btn-logout').onclick = async () => {
+            await signOut(auth);
+            window.location.href = "login.html";
+        };
+    </script>
+</body>
+</html>

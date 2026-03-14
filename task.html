@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Workers - Tasks</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@300;500;700&display=swap');
+
+        :root {
+            --p5-red: #d31212;
+            --p5-bright-red: #ff1a1a;
+            --p5-black: #0a0a0a;
+            --p5-dark-gray: #1a1a1a;
+            --p5-white: #eeeeee;
+            --p5-green: #00ff00;
+        }
+
+        * { box-sizing: border-box; }
+        body {
+            background-color: var(--p5-black);
+            background-image: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.8)), 
+                              repeating-linear-gradient(45deg, #151515 0, #151515 1px, transparent 0, transparent 50%);
+            background-size: 10px 10px;
+            color: var(--p5-white);
+            font-family: 'Oswald', sans-serif;
+            margin: 0; padding: 15px;
+            padding-bottom: 90px;
+            overflow-x: hidden;
+        }
+
+        /* --- HEADER (IGUAL A INDEX) --- */
+        .header {
+            background: var(--p5-black);
+            padding: 40px 20px;
+            margin: -15px -15px 30px -15px;
+            text-align: center;
+            border-bottom: 5px solid var(--p5-red);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .header::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: repeating-linear-gradient(0deg, rgba(211, 18, 18, 0.05) 0px, transparent 2px);
+            pointer-events: none;
+        }
+
+        .title-wrapper {
+            position: relative;
+            display: inline-block;
+            transform: rotate(-2deg);
+        }
+
+        h1 { 
+            font-family: 'Anton'; 
+            font-size: clamp(2.5rem, 8vw, 4rem); 
+            margin: 0; 
+            color: var(--p5-white); 
+            text-transform: uppercase;
+            letter-spacing: -2px;
+            text-shadow: 4px 4px 0 var(--p5-red), -2px -2px 0 var(--p5-black);
+            line-height: 0.9;
+        }
+
+        .header-subtitle {
+            font-family: 'Anton';
+            background: var(--p5-red);
+            color: var(--p5-black);
+            padding: 2px 15px;
+            font-size: 1.2rem;
+            display: inline-block;
+            transform: skewX(-15deg);
+            margin-top: 5px;
+        }
+
+        /* --- MEGA SELECTOR (IGUAL A INDEX) --- */
+        .mega-selector {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            margin-bottom: 25px;
+            padding: 0 5px;
+        }
+
+        @media (min-width: 900px) {
+            .mega-selector { grid-template-columns: repeat(6, 1fr); }
+        }
+
+        .mega-btn {
+            background: var(--p5-dark-gray);
+            color: var(--p5-white);
+            border: 2px solid #333;
+            padding: 12px 5px;
+            font-family: 'Anton';
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            clip-path: polygon(0 0, 100% 15%, 100% 100%, 0 85%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .mega-btn i { font-size: 1.2rem; color: var(--p5-red); transition: 0.3s; }
+
+        .mega-btn:hover {
+            background: var(--p5-white);
+            color: var(--p5-black);
+            transform: scale(1.05) rotate(2deg);
+            z-index: 5;
+        }
+
+        .mega-btn.active {
+            background: var(--p5-red);
+            color: var(--p5-white);
+            clip-path: polygon(0 15%, 100% 0, 100% 85%, 0 100%);
+            transform: scale(1.1);
+            box-shadow: 0 0 20px rgba(211, 18, 18, 0.6);
+        }
+
+        .mega-btn.active i { color: var(--p5-white); }
+
+        /* --- FILTROS ESTILO ACTION CARD --- */
+        .action-card {
+            background: var(--p5-dark-gray);
+            padding: 20px;
+            border: 2px solid #333;
+            border-top: 5px solid var(--p5-red);
+            margin-bottom: 25px;
+            box-shadow: 5px 5px 0 var(--p5-black);
+            transform: rotate(-1deg);
+        }
+
+        .filter-row { display: flex; gap: 10px; margin-top: 10px; }
+        
+        input[type="text"], select {
+            background: var(--p5-black);
+            color: var(--p5-white);
+            border: 2px solid #333;
+            padding: 12px;
+            font-family: 'Oswald';
+            font-size: 0.9rem;
+            width: 100%;
+            outline: none;
+        }
+
+        input:focus, select:focus { border-color: var(--p5-red); }
+
+        .btn-cargar {
+            background: var(--p5-white);
+            color: var(--p5-black);
+            border: none;
+            padding: 12px;
+            font-family: 'Anton';
+            width: 100%;
+            margin-top: 10px;
+            cursor: pointer;
+            clip-path: polygon(0 0, 100% 15%, 95% 100%, 5% 85%);
+            transition: 0.3s;
+        }
+
+        .btn-cargar:hover { background: var(--p5-red); color: white; transform: scale(1.02); }
+
+        /* --- MISIONES (ESTILO STAT CARDS) --- */
+        .mission-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 15px;
+        }
+
+        .m-card {
+            background: var(--p5-dark-gray);
+            border: 1px solid #333;
+            border-left: 8px solid var(--p5-red);
+            display: flex;
+            align-items: center;
+            transition: 0.3s;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .m-card:hover { transform: translateX(10px) rotate(1deg); background: #222; }
+
+        .m-icon {
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(211, 18, 18, 0.1);
+            font-size: 1.5rem;
+            color: var(--p5-red);
+        }
+
+        .m-info { padding: 10px 15px; flex: 1; }
+        .m-info h3 { 
+            margin: 0; 
+            font-family: 'Anton'; 
+            font-size: 1.1rem; 
+            text-transform: uppercase; 
+            letter-spacing: 0.5px;
+            line-height: 1.1;
+        }
+        .m-info p { margin: 5px 0 0 0; font-size: 0.75rem; color: #888; font-weight: bold; }
+
+        .m-stars { padding-right: 15px; color: #f0f000; font-size: 0.8rem; }
+
+        /* --- TAB BAR --- */
+        .tab-bar { position: fixed; bottom: 0; left: 0; width: 100%; background: black; display: flex; justify-content: space-around; padding: 12px 0; border-top: 3px solid var(--p5-red); z-index: 2000; }
+        .tab-item { color: #555; text-decoration: none; text-align: center; font-family: 'Anton'; font-size: 0.65rem; }
+        .tab-item i { display: block; font-size: 1.3rem; margin-bottom: 4px; }
+        .tab-item.active { color: var(--p5-red); transform: translateY(-3px); }
+
+        /* --- MODAL (ESTILO PERSONA 5) --- */
+        .modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); display: none; justify-content: center; align-items: center; z-index: 3000; }
+        .modal-content { 
+            background: var(--p5-white); 
+            color: var(--p5-black); 
+            width: 90%; 
+            max-width: 450px;
+            padding: 30px; 
+            clip-path: polygon(2% 5%, 100% 0, 98% 95%, 0 100%);
+            position: relative;
+        }
+        
+        #mTitle { font-family: 'Anton'; font-size: 2.2rem; border-bottom: 5px solid var(--p5-black); text-transform: uppercase; line-height: 1; margin-bottom: 10px; }
+        #mPath { font-size: 0.8rem; background: var(--p5-red); color: white; display: inline-block; padding: 2px 10px; transform: skewX(-15deg); margin-bottom: 15px; }
+        #mDesc { font-size: 1rem; margin: 15px 0; border-left: 5px solid var(--p5-red); padding-left: 15px; font-weight: 500; }
+
+        .modal-btns { display: flex; gap: 10px; margin-top: 25px; }
+        .m-btn { 
+            flex: 1; padding: 15px; border: none; font-family: 'Anton'; font-size: 1rem; cursor: pointer; transition: 0.2s; 
+            clip-path: polygon(0 0, 100% 20%, 100% 100%, 0 80%);
+        }
+        .m-btn-ok { background: var(--p5-green); color: black; }
+        .m-btn-wait { background: var(--p5-black); color: white; }
+        .m-btn-cancel { background: var(--p5-red); color: white; }
+
+        #loadingScreen { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 5000; display: none; justify-content: center; align-items: center; }
+        .load-text { font-family: 'Anton'; font-size: 2rem; color: white; text-transform: uppercase; animation: pulse 1s infinite; letter-spacing: 2px; }
+
+        #rankUpAnim { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 4000; display: none; justify-content: center; align-items: center; cursor: pointer; }
+        .clear-title { font-family: 'Anton'; font-size: 5rem; color: white; margin: 0; text-shadow: 0 0 20px var(--p5-red), 4px 4px 0 black; font-style: italic; transform: rotate(-5deg); }
+
+        @keyframes pulse { 0%, 100% { opacity: 0.5; } 50% { opacity: 1; } }
+    </style>
+</head>
+<body>
+
+    <div id="loadingScreen"><div class="load-text">CARGANDO...</div></div>
+    
+    <div id="rankUpAnim" onclick="this.style.display='none'">
+        <div style="text-align:center;">
+            <p class="clear-title">MISSION CLEAR</p>
+            <div style="background:black; padding:15px 40px; transform:skewX(-15deg); margin-top:20px; border:2px solid white;"><p id="rankStatText" style="font-family:'Anton'; font-size:3rem; color:var(--p5-green); margin:0;"></p></div>
+        </div>
+    </div>
+
+    <div class="header">
+        <div class="title-wrapper">
+            <h1>TASK WORKERS</h1>
+        </div><br>
+        <div class="header-subtitle">OPERACIONES EN CURSO</div>
+    </div>
+
+    <div class="mega-selector" id="mainNav"></div>
+
+    <div class="action-card">
+        <input type="text" id="searchInput" placeholder="BUSCAR CONTRATO..." oninput="window.renderMisiones()">
+        <div class="filter-row">
+            <select id="subFilter" onchange="window.updateSmallFilter(); window.renderMisiones();"></select>
+            <select id="smallFilter" onchange="window.renderMisiones()"></select>
+        </div>
+        <button class="btn-cargar" onclick="document.getElementById('fileInput').click()">
+            <i class="fa-solid fa-file-import"></i> CARGAR ARCHIVO .TXT
+        </button>
+        <input type="file" id="fileInput" style="display:none" accept=".txt">
+    </div>
+
+    <main class="mission-container" id="missionList"></main>
+
+    <nav class="tab-bar">
+        <a href="index.html" class="tab-item"><i class="fa-solid fa-house"></i>INICIO</a>
+        <a href="task.html" class="tab-item active"><i class="fa-solid fa-skull-crossbones"></i>TASKS</a>
+        <a href="history_p.html" class="tab-item"><i class="fa-solid fa-clock-rotate-left"></i>PENDIENTES</a>
+        <a href="history_f.html" class="tab-item"><i class="fa-solid fa-check-double"></i>HISTORIAL</a>
+    </nav>
+
+    <div id="missionModal" class="modal" onclick="if(event.target == this) window.cerrarModal()">
+        <div class="modal-content">
+            <div id="mStars" style="color: var(--p5-red); font-size: 1.2rem; margin-bottom: 5px;"></div>
+            <div id="mTitle">---</div>
+            <div id="mPath">---</div>
+            <div id="mDesc">---</div>
+            <div class="modal-btns">
+                <button class="m-btn m-btn-ok" onclick="window.gestionarMision('completada')"><i class="fa-solid fa-check"></i> LISTO</button>
+                <button class="m-btn m-btn-wait" onclick="window.gestionarMision('pendiente')"><i class="fa-solid fa-thumbtack"></i> PENDIENTE</button>
+                <button class="m-btn m-btn-cancel" onclick="window.cerrarModal()"><i class="fa-solid fa-xmark"></i></button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-app.js";
+    import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-auth.js";
+    import { getFirestore, doc, setDoc, updateDoc, onSnapshot, increment, collection, addDoc, arrayUnion, serverTimestamp } from "https://www.gstatic.com/firebasejs/9.17.1/firebase-firestore.js";
+
+    const firebaseConfig = {
+        apiKey: "AIzaSyBjTFuASVM9JpXtM04dKwgaO2bC_thSxXs",
+        authDomain: "the-workes.firebaseapp.com",
+        projectId: "the-workes",
+        storageBucket: "the-workes.firebasestorage.app",
+        messagingSenderId: "836433638146",
+        appId: "1:836433638146:web:2c1bb69904a82e2f49c81b"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+    const db = getFirestore(app);
+
+    const ESTRUCTURA = {
+        "FÍSICO": { icon: "fa-dumbbell", subs: { "Fuerza": ["Pesas", "Flexiones", "Dominadas", "Potencia", "Agarre"], "Salud": ["Sueño", "Hidratación", "Nutrición", "Postura", "Higiene"], "Combate": ["Reflejos", "Técnica", "Defensa", "Resistencia", "Estrategia"] } },
+        "MENTE": { icon: "fa-brain", subs: { "Estudios": ["Matemáticas", "Ciencias", "Historia", "Literatura", "Geografía"], "Idiomas": ["Inglés", "Gramática", "Vocabulario", "Escucha", "Lectura"], "Análisis": ["Lógica", "Crítica", "Problemas", "Ajedrez", "Memoria"] } },
+        "SOCIAL": { icon: "fa-comments", subs: { "Carisma": ["Oratoria", "Presencia", "Cuerpo", "Humor", "Estilo"], "Empatía": ["Escucha", "Apoyo", "Conflictos", "Paciencia", "Perspectiva"], "Redes": ["Amigos", "Networking", "Familia", "Eventos", "Comunidad"] } },
+        "CORAJE": { icon: "fa-fire", subs: { "Voluntad": ["Disciplina", "Iniciativa", "Constancia", "Puntualidad", "Decisión"], "Resiliencia": ["Fracaso", "Estrés", "Miedo", "Adaptación", "Estoicismo"], "Exploración": ["Novedad", "Viajes", "Extraños", "Proyectos", "Curiosidad"] } },
+        "TALENTO": { icon: "fa-palette", subs: { "Arte": ["Dibujo", "Música", "Diseño", "Foto", "Escritura"], "Tecnología": ["Código", "Hardware", "Software", "Teclado", "Video"], "Oficios": ["Cocina", "Reparación", "Orden", "Finanzas", "Auxilios"] } },
+        "ESPÍRITU": { icon: "fa-om", subs: { "Zen": ["Meditación", "Respiración", "Mindfulness", "Paz", "Gratitud"], "Valores": ["Honestidad", "Deber", "Lealtad", "Justicia", "Humildad"], "Filosofía": ["Lectura", "Reflexión", "Propósito", "Ética", "Ser"] } }
+    };
+
+    let catActual = "FÍSICO";
+    let misiones = [];
+    let misionSeleccionadaId = null;
+
+    function initUI() {
+        const nav = document.getElementById('mainNav');
+        if(!nav) return;
+        nav.innerHTML = "";
+        Object.keys(ESTRUCTURA).forEach(c => {
+            const btn = document.createElement('button');
+            btn.className = `mega-btn ${c === catActual ? 'active' : ''}`;
+            btn.innerHTML = `<i class="fa-solid ${ESTRUCTURA[c].icon}"></i><span>${c}</span>`;
+            btn.onclick = () => { catActual = c; initUI(); renderMisiones(); };
+            nav.appendChild(btn);
+        });
+        updateSubFilter();
+    }
+
+    function updateSubFilter() {
+        const subS = document.getElementById('subFilter');
+        if(subS) {
+            subS.innerHTML = `<option value="todas">CATEGORÍA: TODAS</option>`;
+            Object.keys(ESTRUCTURA[catActual].subs).forEach(s => { 
+                subS.innerHTML += `<option value="${s}">${s}</option>`; 
+            });
+            window.updateSmallFilter();
+        }
+    }
+
+    window.updateSmallFilter = function() {
+        const sub = document.getElementById('subFilter').value;
+        const smallS = document.getElementById('smallFilter');
+        smallS.innerHTML = '<option value="todas">HABILIDAD: TODAS</option>';
+        if(sub !== "todas") { 
+            ESTRUCTURA[catActual].subs[sub].forEach(m => { 
+                smallS.innerHTML += `<option value="${m}">${m}</option>`; 
+            }); 
+        }
+        renderMisiones();
+    };
+
+    function renderMisiones() {
+        const container = document.getElementById('missionList');
+        const search = document.getElementById('searchInput').value.toLowerCase();
+        const fSub = document.getElementById('subFilter').value;
+        const fSmall = document.getElementById('smallFilter').value;
+        container.innerHTML = "";
+        
+        const filtradas = misiones.filter(m => { 
+            const catMision = m.categoria ? m.categoria.trim().toUpperCase() : "";
+            return catMision === catActual && 
+                   (!m.estado || m.estado === "disponible") && 
+                   (fSub === "todas" || m.subcategoria === fSub) && 
+                   (fSmall === "todas" || m.minicategoria === fSmall) && 
+                   (m.titulo.toLowerCase().includes(search));
+        });
+
+        filtradas.forEach(m => {
+            const div = document.createElement('div');
+            div.className = 'm-card';
+            div.onclick = () => abrirModal(m);
+            div.innerHTML = `
+                <div class="m-icon"><i class="fa-solid ${ESTRUCTURA[catActual].icon}"></i></div>
+                <div class="m-info"><h3>${m.titulo}</h3><p>${m.subcategoria} / ${m.minicategoria}</p></div>
+                <div class="m-stars">${'★'.repeat(m.estrellas)}</div>
+            `;
+            container.appendChild(div);
+        });
+    }
+
+    function abrirModal(m) {
+        misionSeleccionadaId = m.id;
+        document.getElementById('mTitle').innerText = m.titulo;
+        document.getElementById('mDesc').innerText = m.descripcion;
+        document.getElementById('mPath').innerText = `${m.categoria} > ${m.subcategoria} > ${m.minicategoria}`;
+        document.getElementById('mStars').innerText = '★'.repeat(m.estrellas);
+        document.getElementById('missionModal').style.display = 'flex';
+    }
+
+    window.cerrarModal = () => document.getElementById('missionModal').style.display = 'none';
+
+    window.gestionarMision = async function(accion) {
+        const user = auth.currentUser;
+        if(!user) return;
+        
+        const index = misiones.findIndex(x => x.id === misionSeleccionadaId);
+        if(index === -1) return;
+
+        const mision = misiones[index];
+        document.getElementById('loadingScreen').style.display = 'flex';
+        window.cerrarModal();
+
+        try {
+            const userRef = doc(db, "usuarios", user.uid);
+            if (accion === 'completada') {
+                const puntos = mision.estrellas >= 4 ? 3 : (mision.estrellas === 3 ? 2 : 1);
+                const nMega = mision.categoria.trim().toUpperCase(); 
+                const nCat = mision.subcategoria.trim();             
+                const nHab = mision.minicategoria.trim();            
+
+                const actualizaciones = {};
+                actualizaciones[`${nMega}.${nCat}.${nHab}`] = increment(puntos);
+                actualizaciones["historial"] = arrayUnion({ fecha: new Date().toLocaleString(), accion: `Misión: ${nHab} (+${puntos} EXP)` });
+
+                await updateDoc(userRef, actualizaciones);
+                await addDoc(collection(db, "completadas"), { ...mision, userId: user.uid, fechaFin: serverTimestamp(), puntosOtorgados: puntos });
+
+                document.getElementById('rankStatText').innerText = `+${puntos} EXP`;
+                document.getElementById('rankUpAnim').style.display = 'flex';
+            } else if (accion === 'pendiente') {
+                await addDoc(collection(db, "pendientes"), { ...mision, userId: user.uid, fechaAgregado: serverTimestamp() });
+            }
+            misiones.splice(index, 1);
+            await setDoc(doc(db, "misiones", user.uid), { lista: misiones });
+        } catch(e) { console.error(e); }
+        document.getElementById('loadingScreen').style.display = 'none';
+    };
+
+    document.getElementById('fileInput').onchange = function(e) {
+        const file = e.target.files[0];
+        if(!file) return;
+        const reader = new FileReader();
+        document.getElementById('loadingScreen').style.display = 'flex';
+        reader.onload = async (event) => {
+            try {
+                const lineas = event.target.result.split('\n');
+                const nuevas = lineas.map((linea, i) => {
+                    const partes = linea.split('|');
+                    if(partes.length < 5) return null;
+                    return { id: Date.now() + i + Math.random(), categoria: partes[0].trim().toUpperCase(), subcategoria: partes[1].trim(), minicategoria: partes[2].trim(), estrellas: parseInt(partes[3].trim()) || 1, titulo: partes[4].trim(), descripcion: partes[5] ? partes[5].trim() : "Sin descripción.", estado: "disponible" };
+                }).filter(x => x);
+                await setDoc(doc(db, "misiones", auth.currentUser.uid), { lista: [...misiones, ...nuevas] });
+            } catch(err) { console.error(err); }
+            document.getElementById('loadingScreen').style.display = 'none';
+        };
+        reader.readAsText(file);
+    };
+
+    onAuthStateChanged(auth, (user) => {
+        if(user) {
+            initUI();
+            onSnapshot(doc(db, "misiones", user.uid), (snap) => {
+                if(snap.exists()) { misiones = snap.data().lista || []; renderMisiones(); }
+                else { misiones = []; renderMisiones(); }
+            });
+        } else { window.location.href = "login.html"; }
+    });
+    
+    window.renderMisiones = renderMisiones;
+</script>
+</body>
+</html>
